@@ -61,7 +61,7 @@ class GPSegmentation():
         self.is_initialized = False
 
         for n, z in enumerate(z_s):
-            y = np.loadtxt(z, dtype=np.float)
+            y = np.loadtxt(z, dtype=float)
             y = y.reshape( y.shape[0], -1 )
             segm = []
             self.data.append( y )
@@ -96,14 +96,14 @@ class GPSegmentation():
     def load_model( self, basename ):
         # GP読み込み
         for c in range(self.numclass):
-            filename = basename + "class%03d.npy" % c
+            filename = basename / ("class%03d.npy" % c)
             self.segm_in_class[c] = np.load( filename, allow_pickle=True)
             self.update_gp( c )
 
         # 遷移確率更新
-        self.trans_prob = np.load( basename+"trans.npy", allow_pickle=True )
-        self.trans_prob_bos = np.load( basename+"trans_bos.npy", allow_pickle=True )
-        self.trans_prob_eos = np.load( basename+"trans_eos.npy", allow_pickle=True )
+        self.trans_prob = np.load( basename / "trans.npy", allow_pickle=True )
+        self.trans_prob_bos = np.load( basename / "trans_bos.npy", allow_pickle=True )
+        self.trans_prob_eos = np.load( basename / "trans_eos.npy", allow_pickle=True )
 
 
     def update_gp(self, c ):
@@ -130,6 +130,7 @@ class GPSegmentation():
     def calc_emission_logprob_all(self, d):
         T = len(d)
         # 出力確率を計算
+        # Calculate output probability
         emission_prob_all = np.zeros( ( self.numclass, self.MAX_LEN, len(d)) )
         for c in range(self.numclass):
             params = self.gps[c].predict( range(self.MAX_LEN) )
@@ -137,9 +138,11 @@ class GPSegmentation():
                 for dim in range( self.dim ):
                     mu = params[dim][0][k]
                     sig = params[dim][1][k]
-                    emission_prob_all[c, k, 0:T-k] += -math.log(math.sqrt( 2*math.pi*sig**2)) - (d[k:,dim]-mu)**2 / (2*sig**2)
+                    if d[k:,dim].size != 0:
+                        emission_prob_all[c, k, 0:T-k] += -math.log(math.sqrt( 2*math.pi*sig**2)) - (d[k:,dim]-mu)**2 / (2*sig**2)
 
         # 累積確率にする
+        # Make it a cumulative probability
         for k in range(1, self.MAX_LEN):
             emission_prob_all[:, k, :] += emission_prob_all[:, k-1, :]
 
@@ -160,9 +163,9 @@ class GPSegmentation():
                 classes += [ c for j in range(len(s)) ]
                 cut_points += [0] * len(s)
                 cut_points[-1] = 1
-            np.savetxt( basename+"segm%03d.txt" % n, np.vstack([classes,cut_points]).T, fmt=str("%d") )
+            np.savetxt( basename / ("segm%03d.txt" % n), np.vstack([classes,cut_points]).T, fmt=str("%d") )
             #np.savetxt( basename+"beta%03d.txt" % n, np.array(self.beta), fmt=str("%d") )
-            np.savetxt( basename+"beta%03d.txt" % n, np.array(self.beta) )
+            np.savetxt( basename / ("beta%03d.txt" % n), np.array(self.beta) )
 
         for c in range(len(self.gps)):
             for d in range(self.dim):
@@ -173,18 +176,19 @@ class GPSegmentation():
                         plt.plot( range(len(data)), data, "o-" )
                     else:
                         plt.plot( range(len(data[:,d])), data[:,d], "o-" )
-                    plt.ylim( -1, 1 )
-                plt.savefig( basename+"class%03d_dim%03d.png" % (c, d) )
+                    # plt.ylim( -1, 1 )
+                # print("Saved:" + basename / "class%03d_dim%03d.png" % (c, d))
+                plt.savefig( basename / ("class%03d_dim%03d.png" % (c, d)) )
                 plt.close()
 
-        np.save( basename + "trans.npy" , self.trans_prob  )
-        np.save( basename + "trans_bos.npy" , self.trans_prob_bos )
-        np.save( basename + "trans_eos.npy" , self.trans_prob_eos )
-        np.save( basename + "all_class.npy", self.segm_in_class[c])
+        np.save( basename / "trans.npy" , self.trans_prob  )
+        np.save( basename / "trans_bos.npy" , self.trans_prob_bos )
+        np.save( basename / "trans_eos.npy" , self.trans_prob_eos )
+        np.save( basename / "all_class.npy", np.array(self.segm_in_class[c], dtype=object))
 
         for c in range(self.numclass):
             #np.save( basename+"class%03d.npy" % c, self.segm_in_class[c] )
-            np.save( basename+"class%03d.npy" % c, np.array(self.segm_in_class[c], dtype=object) )
+            np.save( basename / ("class%03d.npy" % c), np.array(self.segm_in_class[c], dtype=object) )
 
         return self.numclass
 
