@@ -177,6 +177,7 @@ class GPSegmentation():
                     else:
                         plt.plot( range(len(data[:,d])), data[:,d], "o-" )
                     # plt.ylim( -1, 1 )
+                plt.title(f"Class {c} - Dimension {d}")
                 # print("Saved:" + basename / "class%03d_dim%03d.png" % (c, d))
                 plt.savefig( basename / ("class%03d_dim%03d.png" % (c, d)) )
                 plt.close()
@@ -271,14 +272,20 @@ class GPSegmentation():
         segm = [ d[t-k:t+1] ]
         segm_class = [ c ]
 
-        while True:
+        while t > 0:
+            # print(f"Backtracking: t={t}, k={k}, c={c}")
             kk, cc = path_kc[t, k, c]
+            # print(f"Next indices: kk={kk}, cc={cc}")
+
+            # Break if we hit an invalid state
+            if kk < 0 or cc < 0:
+                break
 
             t = t-k-1
             k = kk
             c = cc
 
-            if t<=0:
+            if t<0:
                 break
 
             if t-k-1<=0:
@@ -292,6 +299,11 @@ class GPSegmentation():
 
             segm.insert( 0, s )
             segm_class.insert( 0, c )
+
+            # # Additional checks for boundaries
+            # if t < 0 or k < 0 or c < 0:
+            #     print(f"Invalid indices encountered: t={t}, k={k}, c={c}")
+            #     break
 
         return segm, segm_class
 

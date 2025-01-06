@@ -61,18 +61,21 @@ def learn( savedir, dim, gamma, eta, initial_class, avelen, maxlen, minlen, skip
     start = time.time()
     #iteration (default: 10)
     for it in range( 10 ):
-        print( "-----", it, "-----" )
+        print(f"----- Iteration: {it + 1} -----" )
         gpsegm.learn()
         numclass = gpsegm.save_model( savedir )
         print( "lik =", gpsegm.calc_lik() )
         liks.append(gpsegm.calc_lik())
     print ("liks: ",liks)
-    print( time.time()-start )
+    print(f"Total duration: {time.time()-start} sec")
 
     #plot liks
     plt.clf()
-    plt.plot( range(len(liks)), liks )
+    plt.plot( range(len(liks)), liks , "-o")
     print(f"Saved: {os.path.join( savedir,'liks.png')}")
+    plt.ylabel("Likelihood")
+    plt.xlabel("Iterations")
+    plt.tight_layout()
     plt.savefig( os.path.join( savedir,"liks.png") )
 
     return numclass
@@ -90,7 +93,7 @@ def recog( modeldir, savedir, dim, gamma, eta, initial_class, avelen, maxlen, mi
     start = time.time()
     gpsegm.recog()
     print( "lik =", gpsegm.calc_lik() )
-    print( time.time()-start )
+    print(f"Total duration: {time.time()-start} sec")
     gpsegm.save_model( savedir )
 
 
@@ -105,7 +108,7 @@ def main():
     # avelen = 15
     # maxlen = int(avelen + avelen*0.25)
     # minlen = int(avelen*0.25)
-    print(maxlen, minlen)
+    # print(maxlen, minlen)
     # skiplen = 1
 
     #learn
