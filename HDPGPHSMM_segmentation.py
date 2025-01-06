@@ -178,6 +178,7 @@ class GPSegmentation():
                         plt.plot( range(len(data[:,d])), data[:,d], "o-" )
                     # plt.ylim( -1, 1 )
                 plt.title(f"Class {c} - Dimension {d}")
+                plt.tight_layout()
                 # print("Saved:" + basename / "class%03d_dim%03d.png" % (c, d))
                 plt.savefig( basename / ("class%03d_dim%03d.png" % (c, d)) )
                 plt.close()
