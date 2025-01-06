@@ -195,13 +195,17 @@ class GPSegmentation():
 
     def calc_vitervi_path(self, d ):
         T = len(d)
+        # Forward probability. Probability is stored in logarithm. 1.0e-100 approximately represents a probability of 0.
         log_a = np.zeros( (len(d), self.MAX_LEN, self.numclass) ) - 1000000   # 前向き確率．対数で確率を保持．1.0e-100で確率0を近似的に表現．
+        # Whether the calculated value is valid or not. To make the probability of the uncalculated location 0
         valid = np.zeros( (len(d), self.MAX_LEN, self.numclass) ) # 計算された有効な値可どうか．計算されていない場所の確率を0にするため．
+        # Normalization Constants
         z = np.ones( T ) # 正規化定数
         path_kc = -np.ones(  (len(d), self.MAX_LEN, self.numclass, 2), dtype=np.int32 )
         emission_prob_all = self.calc_emission_logprob_all( d )
 
         # 前向き確率計算
+        # Forward Probability Calculation
         for t in range(T):
             for k in range(self.MIN_LEN,self.MAX_LEN,self.SKIP_LEN):
                 if t-k<0:
@@ -214,11 +218,13 @@ class GPSegmentation():
                     foward_prob = 0.0
 
                     # 遷移確率
+                    # Transition Probability
                     tt = t-k-1
                     if tt>=0:
                         prev_prob = log_a[tt,:,:] + z[tt] + np.log(self.trans_prob[:,c])
 
                         # 最大値を取る
+                        # Take the maximum value
                         idx = np.argmax( prev_prob.reshape( self.MAX_LEN*self.numclass ))
                         kk = int(idx/self.numclass)
                         cc = idx % self.numclass
@@ -229,6 +235,7 @@ class GPSegmentation():
                         foward_prob = prev_prob[kk, cc] + out_prob
                     else:
                         # 最初の単語
+                        # First Word
                         foward_prob = out_prob + math.log(self.trans_prob_bos[c])
 
                         path_kc[t, k, c, 0] = t+1
@@ -237,6 +244,7 @@ class GPSegmentation():
 
                     if t==T-1:
                         # 最後の単語
+                        # Final Words
                         foward_prob += math.log(self.trans_prob_eos[c])
 
 
@@ -246,6 +254,7 @@ class GPSegmentation():
                         print( "a[t=%d,k=%d,c=%d] became NAN!!" % (t,k,c) )
                         sys.exit(-1)
             # 正規化
+            # normalization
             if t-self.MIN_LEN>=0:
                 z[t] = logsumexp( log_a[t,:,:] )
                 log_a[t,:,:] -= z[t]
@@ -253,6 +262,7 @@ class GPSegmentation():
                 #a[t,:,:] -= z[t]
 
         # バックトラック
+        # Backtrack
         t = T-1
         idx = np.argmax( log_a[t].reshape( self.MAX_LEN*self.numclass ))
         k = int(idx/self.numclass)
@@ -273,9 +283,11 @@ class GPSegmentation():
 
             if t-k-1<=0:
                 #先頭
+                #head
                 s = d[0:t+1]
             else:
                 #先頭以外
+                #Other than the first
                 s = d[t-k:t+1]
 
             segm.insert( 0, s )
